@@ -22,8 +22,13 @@ async function downloadAttendanceReport() {
         fs.mkdirSync(DOWNLOAD_PATH, { recursive: true });
     }
 
-    // headless: false means you'll see the browser open and watch the script work.
-    const browser = await puppeteer.launch({ headless: false, defaultViewport: null });
+    // --- CORRECTED: Added arguments to disable the browser's password manager ---
+    const browser = await puppeteer.launch({ 
+        headless: false, 
+        defaultViewport: null,
+        args: ['--disable-features=PasswordManager'] // This line prevents the pop-up
+    });
+    
     const page = await browser.newPage();
     
     // Tell Puppeteer where to save downloaded files.
@@ -64,27 +69,8 @@ async function downloadAttendanceReport() {
 
         await page.waitForSelector('#EasymenuMain', { visible: true });
         console.log('Login successful!');
-
-        // --- NEW: HANDLE "CHANGE PASSWORD" POP-UP ---
-        try {
-            console.log('Checking for "Change Password" pop-up...');
-            // **IMPORTANT**: Use Inspect to find the selector for the pop-up container
-            const popupSelector = '#changePasswordPopup'; // <--- VERIFY AND CHANGE THIS
-            await page.waitForSelector(popupSelector, { visible: true, timeout: 5000 }); // Wait 5 seconds for pop-up
-
-            console.log('Pop-up found. Clicking the OK button...');
-            // **IMPORTANT**: Use Inspect to find the selector for the blue OK button
-            const okButtonSelector = '#popupOkButton'; // <--- VERIFY AND CHANGE THIS
-            await page.click(okButtonSelector);
-
-            console.log('OK button clicked. Waiting for pop-up to disappear...');
-            await page.waitForSelector(popupSelector, { hidden: true });
-            console.log('Pop-up closed.');
-        } catch (error) {
-            console.log('No "Change Password" pop-up appeared within 5 seconds. Continuing...');
-        }
         
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for page to settle
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for page to settle
 
         // --- NAVIGATE TO THE REPORT PAGE ---
         console.log('Hovering over the "Reports" menu...');
