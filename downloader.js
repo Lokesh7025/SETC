@@ -39,20 +39,18 @@ async function downloadAttendanceReport() {
 
         console.log('Attempting to find and fill login form...');
         
-        // --- NEW LOGIC TO HANDLE POTENTIAL IFRAMES ON LOGIN PAGE ---
+        // --- LOGIC TO HANDLE POTENTIAL IFRAMES ON LOGIN PAGE ---
         let loginFrame = page; // Start by assuming the form is on the main page
 
-        // Try to find an iframe on the page. Some login forms are embedded.
         const iframeElementHandle = await page.$('iframe'); 
         if (iframeElementHandle) {
             console.log('An iframe was found on the login page. Attempting to access it.');
             const frame = await iframeElementHandle.contentFrame();
             if (frame) {
-                // Check if the login form exists inside this iframe
                 const usernameFieldInFrame = await frame.$('#StaffloginDialogtxt_LoginName');
                 if (usernameFieldInFrame) {
                     console.log('Login form found inside the iframe. Proceeding with login...');
-                    loginFrame = frame; // Target the iframe for login actions
+                    loginFrame = frame;
                 } else {
                     console.log('Iframe found, but login form was not inside it. Will try the main page.');
                 }
@@ -62,36 +60,33 @@ async function downloadAttendanceReport() {
         }
 
         console.log('Logging in...');
-        // These actions will now target either the main page or the discovered iframe
-        await loginFrame.type('#StaffloginDialog_txt_LoginName', USERNAME);
+        await loginFrame.type('#StaffloginDialogtxt_LoginName', USERNAME);
         await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
         await loginFrame.click('#StaffloginDialog_Btn_Ok');
 
-        // --- THIS LINE IS ESSENTIAL ---
         // It waits for the main menu to appear on the MAIN page, confirming a successful login before continuing.
         await page.waitForSelector('#EasymenuMain', { visible: true });
         console.log('Login successful!');
-        await page.waitForTimeout(2000); // Wait 2 seconds for all elements to load.
+        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // --- NAVIGATE TO THE REPORT PAGE (UPDATED LOGIC) ---
+        // --- NAVIGATE TO THE REPORT PAGE ---
         console.log('Hovering over the "Reports" menu...');
         await page.hover('#Reports');
         
-        // Wait for the "Export Logs" sub-menu item to appear and hover over it
         await page.waitForSelector('#ExportLogs', { visible: true });
         console.log('Hovering over "Export Logs"...');
         await page.hover('#ExportLogs');
         
-        // Wait for the final "Export Attendance Logs" item to appear and click it
         await page.waitForSelector('#MenuItem16', { visible: true });
         console.log('Clicking on "Export Attendance Logs"...');
         await page.click('#MenuItem16');
 
         // --- INTERACT WITH THE REPORT PAGE (INSIDE THE IFRAME) ---
         console.log('Waiting for the report page to load inside the iframe...');
-        // Wait for the iframe to load its content, then get a handle to it.
         await page.waitForSelector('iframe#tabIframe');
-        await page.waitForTimeout(5000); // Give the iframe 5 seconds to be fully loaded
+        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const iframeElement = await page.$('iframe#tabIframe');
         const frame = await iframeElement.contentFrame();
 
@@ -106,7 +101,8 @@ async function downloadAttendanceReport() {
         console.log('You can now use the "Inspect" tool inside the automated browser to find the final export button ID.');
         console.log('The script will close the browser in 60 seconds.');
 
-        await page.waitForTimeout(60000); // Wait for 60 seconds before closing.
+        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
+        await new Promise(resolve => setTimeout(resolve, 60000));
 
         /*
         // --- CLICK THE EXPORT BUTTON ---
