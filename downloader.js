@@ -37,12 +37,38 @@ async function downloadAttendanceReport() {
         console.log(`Navigating to ${ESSL_LOGIN_URL}...`);
         await page.goto(ESSL_LOGIN_URL, { waitUntil: 'networkidle2' });
 
-        console.log('Logging in...');
-        await page.type('#txtUserName', USERNAME);
-        await page.type('#txtPassword', PASSWORD);
-        await page.click('#btnLogin');
+        console.log('Attempting to find and fill login form...');
+        
+        // --- NEW LOGIC TO HANDLE POTENTIAL IFRAMES ON LOGIN PAGE ---
+        let loginFrame = page; // Start by assuming the form is on the main page
 
-        // Wait for the main menu to be visible, which confirms a successful login.
+        // Try to find an iframe on the page. Some login forms are embedded.
+        const iframeElementHandle = await page.$('iframe'); 
+        if (iframeElementHandle) {
+            console.log('An iframe was found on the login page. Attempting to access it.');
+            const frame = await iframeElementHandle.contentFrame();
+            if (frame) {
+                // Check if the login form exists inside this iframe
+                const usernameFieldInFrame = await frame.$('#StaffloginDialogtxt_LoginName');
+                if (usernameFieldInFrame) {
+                    console.log('Login form found inside the iframe. Proceeding with login...');
+                    loginFrame = frame; // Target the iframe for login actions
+                } else {
+                    console.log('Iframe found, but login form was not inside it. Will try the main page.');
+                }
+            }
+        } else {
+            console.log('No iframe found on the login page. Assuming form is on the main page.');
+        }
+
+        console.log('Logging in...');
+        // These actions will now target either the main page or the discovered iframe
+        await loginFrame.type('#StaffloginDialogtxt_LoginName', USERNAME);
+        await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
+        await loginFrame.click('#StaffloginDialog_Btn_Ok');
+
+        // --- THIS LINE IS ESSENTIAL ---
+        // It waits for the main menu to appear on the MAIN page, confirming a successful login before continuing.
         await page.waitForSelector('#EasymenuMain', { visible: true });
         console.log('Login successful!');
         await page.waitForTimeout(2000); // Wait 2 seconds for all elements to load.
