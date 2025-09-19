@@ -39,15 +39,13 @@ async function downloadAttendanceReport() {
 
         console.log('Attempting to find and fill login form...');
         
-        // --- LOGIC TO HANDLE POTENTIAL IFRAMES ON LOGIN PAGE ---
-        let loginFrame = page; // Start by assuming the form is on the main page
-
+        let loginFrame = page;
         const iframeElementHandle = await page.$('iframe'); 
         if (iframeElementHandle) {
             console.log('An iframe was found on the login page. Attempting to access it.');
             const frame = await iframeElementHandle.contentFrame();
             if (frame) {
-                const usernameFieldInFrame = await frame.$('#StaffloginDialogtxt_LoginName');
+                const usernameFieldInFrame = await frame.$('#StaffloginDialog_txt_LoginName');
                 if (usernameFieldInFrame) {
                     console.log('Login form found inside the iframe. Proceeding with login...');
                     loginFrame = frame;
@@ -60,15 +58,33 @@ async function downloadAttendanceReport() {
         }
 
         console.log('Logging in...');
-        await loginFrame.type('#StaffloginDialogtxt_LoginName', USERNAME);
+        await loginFrame.type('#StaffloginDialog_txt_LoginName', USERNAME);
         await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
         await loginFrame.click('#StaffloginDialog_Btn_Ok');
 
-        // It waits for the main menu to appear on the MAIN page, confirming a successful login before continuing.
         await page.waitForSelector('#EasymenuMain', { visible: true });
         console.log('Login successful!');
-        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // --- NEW: HANDLE "CHANGE PASSWORD" POP-UP ---
+        try {
+            console.log('Checking for "Change Password" pop-up...');
+            // **IMPORTANT**: Use Inspect to find the selector for the pop-up container
+            const popupSelector = '#changePasswordPopup'; // <--- VERIFY AND CHANGE THIS
+            await page.waitForSelector(popupSelector, { visible: true, timeout: 5000 }); // Wait 5 seconds for pop-up
+
+            console.log('Pop-up found. Clicking the OK button...');
+            // **IMPORTANT**: Use Inspect to find the selector for the blue OK button
+            const okButtonSelector = '#popupOkButton'; // <--- VERIFY AND CHANGE THIS
+            await page.click(okButtonSelector);
+
+            console.log('OK button clicked. Waiting for pop-up to disappear...');
+            await page.waitForSelector(popupSelector, { hidden: true });
+            console.log('Pop-up closed.');
+        } catch (error) {
+            console.log('No "Change Password" pop-up appeared within 5 seconds. Continuing...');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for page to settle
 
         // --- NAVIGATE TO THE REPORT PAGE ---
         console.log('Hovering over the "Reports" menu...');
@@ -85,7 +101,6 @@ async function downloadAttendanceReport() {
         // --- INTERACT WITH THE REPORT PAGE (INSIDE THE IFRAME) ---
         console.log('Waiting for the report page to load inside the iframe...');
         await page.waitForSelector('iframe#tabIframe');
-        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
         await new Promise(resolve => setTimeout(resolve, 5000));
         const iframeElement = await page.$('iframe#tabIframe');
         const frame = await iframeElement.contentFrame();
@@ -96,19 +111,7 @@ async function downloadAttendanceReport() {
 
         console.log('Successfully accessed the iframe.');
         
-        // --- SCRIPT PAUSED FOR TESTING ---
-        console.log('Navigation successful. Pausing here for you to inspect the page.');
-        console.log('You can now use the "Inspect" tool inside the automated browser to find the final export button ID.');
-        console.log('The script will close the browser in 60 seconds.');
-
-        // CORRECTED: Replaced page.waitForTimeout with new Promise syntax
-        await new Promise(resolve => setTimeout(resolve, 60000));
-
-        /*
         // --- CLICK THE EXPORT BUTTON ---
-        // **IMPORTANT**: You MUST use the "Inspect" tool on the report page
-        // to find the correct selector for the final download/export button.
-        // The selector '#btnExport' is a common guess.
         const exportButtonSelector = '#btnExport'; // <--- VERIFY AND CHANGE THIS
         
         console.log(`Waiting for the export button: "${exportButtonSelector}"`);
@@ -136,7 +139,6 @@ async function downloadAttendanceReport() {
         } else {
             console.error('Could not find the downloaded file. The download might have failed or the file was not an Excel file.');
         }
-        */
 
     } catch (error) {
         console.error('An error occurred during the automation process:', error);
