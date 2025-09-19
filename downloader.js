@@ -63,7 +63,7 @@ async function downloadAttendanceReport() {
 
         console.log('Logging in...');
         // These actions will now target either the main page or the discovered iframe
-        await loginFrame.type('#StaffloginDialogtxt_LoginName', USERNAME);
+        await loginFrame.type('#StaffloginDialog_txt_LoginName', USERNAME);
         await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
         await loginFrame.click('#StaffloginDialog_Btn_Ok');
 
