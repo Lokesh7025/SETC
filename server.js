@@ -1,14 +1,13 @@
-// server.js (Local Storage with 28-Column Excel Import on Port 8080)
-// This version saves all data locally and can import Excel files with many columns.
+// server.js (Local Storage with CSV Import)
+// This version saves all data locally and can import CSV files.
 
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const xlsx = require('xlsx');
+const xlsx = require('xlsx'); // This library can also read CSV files
 
 const app = express();
-// --- UPDATED: Port changed to 8080 to avoid conflicts ---
 const PORT = 8080;
 
 const DB_FILE = './attendance_logs.json';
@@ -41,7 +40,6 @@ function saveRecords(recordsToSave) {
 }
 
 // Endpoint for the biometric device to push live attendance data
-// Note: This endpoint will no longer work unless you can change the device port to 8080.
 app.post('/iclock/cdata', async (req, res) => {
     console.log('=================================================');
     console.log(`[Data Received] Live attendance data POSTed at ${new Date().toISOString()}`);
@@ -68,14 +66,15 @@ app.post('/iclock/cdata', async (req, res) => {
     res.status(200).send('OK');
 });
 
-// Endpoint to upload data from the local Excel file
+// Endpoint to upload data from the local CSV file
 app.get('/upload-from-excel', async (req, res) => {
-    const filePath = './Attendance Logs.xlsx';
-    console.log(`[Excel Upload] Received request to upload data from ${filePath}`);
+    // --- THIS IS THE UPDATED LINE ---
+    const filePath = './Attendance Logs.csv';
+    console.log(`[CSV Upload] Received request to upload data from ${filePath}`);
 
     try {
         if (!fs.existsSync(filePath)) {
-            const msg = `Error: Excel file not found. Ensure '${filePath}' is in the server's folder.`;
+            const msg = `Error: CSV file not found. Ensure '${filePath}' is in the server's folder.`;
             console.error(msg);
             return res.status(404).send(msg);
         }
@@ -86,7 +85,7 @@ app.get('/upload-from-excel', async (req, res) => {
         const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
 
         if (data.length === 0) {
-            return res.status(400).send('Excel sheet is empty.');
+            return res.status(400).send('CSV file is empty.');
         }
 
         const recordsToSave = data.map(row => {
@@ -109,14 +108,14 @@ app.get('/upload-from-excel', async (req, res) => {
 
         if (recordsToSave.length > 0) {
             saveRecords(recordsToSave);
-            const msg = `Successfully processed ${recordsToSave.length} records from Excel and saved locally.`;
-            console.log(`[Excel Upload] ${msg}`);
+            const msg = `Successfully processed ${recordsToSave.length} records from CSV and saved locally.`;
+            console.log(`[CSV Upload] ${msg}`);
             res.status(200).send(msg);
         } else {
-            res.status(400).send('No valid records found in the Excel file.');
+            res.status(400).send('No valid records found in the CSV file.');
         }
     } catch (error) {
-        console.error('[Excel Upload] An error occurred during the upload process:', error);
+        console.error('[CSV Upload] An error occurred during the upload process:', error);
         res.status(500).send('An internal server error occurred.');
     }
 });
@@ -142,7 +141,6 @@ app.get('/get-attendance-data', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Local Uploader server is running on port ${PORT}`);
     console.log('Waiting for data from the biometric device...');
-    // --- UPDATED: The URL now correctly shows the new port ---
     console.log(`To upload from Excel, visit http://localhost:${PORT}/upload-from-excel in your browser.`);
 });
 
