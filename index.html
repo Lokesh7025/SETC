@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <title>Attendance Dashboard (Local)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -91,63 +90,12 @@
                                     <div class="h-6 w-full rounded shimmer"></div>
                                     <div class="h-6 w-full rounded shimmer"></div>
                                 </div>
-=======
-    <title>Live Biometric Attendance</title>
-    <!-- Using Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Simple animation for new rows */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .new-row {
-            animation: fadeIn 0.5s ease-out;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800">
-
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Live Biometric Attendance</h1>
-            <p class="text-md text-gray-600 mt-2">Displaying real-time attendance records from the device.</p>
-            <div id="status" class="mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium">
-                <!-- Status indicator will be updated by JavaScript -->
-            </div>
-        </header>
-
-        <!-- Main content area -->
-        <main class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-600">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">User ID</th>
-                            <th scope="col" class="px-6 py-3">Date</th>
-                            <th scope="col" class="px-6 py-3">Time</th>
-                            <th scope="col" class="px-6 py-3">Raw Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendance-table-body">
-                        <!-- Data will be populated here by JavaScript -->
-                        <tr class="bg-white border-b">
-                            <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                                Waiting for data...
->>>>>>> 580a02ef2676909477461ed8d3f4fdea06124127
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </main>
-<<<<<<< HEAD
     </div>
 
     <script>
@@ -252,105 +200,3 @@
 </body>
 </html>
 
-=======
-
-        <footer class="text-center text-sm text-gray-500 mt-8">
-            <p>Data is refreshed automatically every 5 seconds.</p>
-        </footer>
-    </div>
-
-    <script>
-        // The IP address of the computer running the backend server.
-        const SERVER_IP = '192.168.1.47';
-        const API_URL = `http://${SERVER_IP}/get-attendance-data`;
-
-        const tableBody = document.getElementById('attendance-table-body');
-        const statusIndicator = document.getElementById('status');
-        let knownTimestamps = new Set();
-
-        // Function to update the status indicator
-        function updateStatus(isSuccess, message) {
-            if (isSuccess) {
-                statusIndicator.className = 'mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800';
-                statusIndicator.textContent = `✅ Connected | ${message}`;
-            } else {
-                statusIndicator.className = 'mt-4 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-800';
-                statusIndicator.textContent = `❌ Connection Error | ${message}`;
-            }
-        }
-
-        // Function to fetch and display data
-        async function fetchAttendanceData() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                
-                updateStatus(true, `Last check: ${new Date().toLocaleTimeString()}`);
-
-                if (data.length === 0 && knownTimestamps.size === 0) {
-                     tableBody.innerHTML = `<tr class="bg-white border-b"><td colspan="4" class="px-6 py-12 text-center text-gray-500">No attendance records found yet. Please use the biometric device.</td></tr>`;
-                     return;
-                }
-                
-                // Clear only if we are about to add new, different data
-                if (data.length > 0 && data[0].timestamp !== Array.from(knownTimestamps)[0]) {
-                    tableBody.innerHTML = ''; // Clear existing rows
-                } else if (data.length === 0 && knownTimestamps.size > 0) {
-                    // This case handles if the data file was cleared
-                    knownTimestamps.clear();
-                    return;
-                } else if (data.length > 0 && data.length === knownTimestamps.size) {
-                    // No new data, do nothing
-                    return;
-                }
-
-
-                data.forEach(record => {
-                    // Only add rows that we haven't seen before
-                    if (!knownTimestamps.has(record.timestamp)) {
-                        const recordDate = new Date(record.timestamp);
-                        const row = document.createElement('tr');
-                        row.className = 'bg-white border-b hover:bg-gray-50 new-row';
-                        
-                        // Format date and time for better readability
-                        const formattedDate = recordDate.toLocaleDateString(undefined, {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                        });
-                        const formattedTime = recordDate.toLocaleTimeString();
-
-                        row.innerHTML = `
-                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${record.userId}</td>
-                            <td class="px-6 py-4">${formattedDate}</td>
-                            <td class="px-6 py-4">${formattedTime}</td>
-                            <td class="px-6 py-4 font-mono text-xs">${record.timestamp}</td>
-                        `;
-                        // Add to the top of the table
-                        tableBody.prepend(row);
-                        knownTimestamps.add(record.timestamp);
-                    }
-                });
-
-
-            } catch (error) {
-                console.error('Failed to fetch attendance data:', error);
-                updateStatus(false, 'Could not connect to server.');
-                if (knownTimestamps.size === 0) {
-                    tableBody.innerHTML = `<tr class="bg-white border-b"><td colspan="4" class="px-6 py-12 text-center text-red-500"><strong>Error:</strong> Could not connect to the server at ${API_URL}.<br>Please ensure the backend server is running on the correct computer.</td></tr>`;
-                }
-            }
-        }
-
-        // --- Main execution ---
-        // Fetch data immediately on page load
-        fetchAttendanceData();
-
-        // Then, fetch data every 5 seconds
-        setInterval(fetchAttendanceData, 5000);
-    </script>
-
-</body>
-</html>
->>>>>>> 580a02ef2676909477461ed8d3f4fdea06124127
