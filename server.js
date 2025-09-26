@@ -1,4 +1,4 @@
-// server.js (Local Storage with 28-Column Excel Import)
+// server.js (Local Storage with 28-Column Excel Import on Port 8080)
 // This version saves all data locally and can import Excel files with many columns.
 
 const express = require('express');
@@ -8,7 +8,8 @@ const fs = require('fs');
 const xlsx = require('xlsx');
 
 const app = express();
-const PORT = 80;
+// --- UPDATED: Port changed to 8080 to avoid conflicts ---
+const PORT = 8080;
 
 const DB_FILE = './attendance_logs.json';
 
@@ -40,6 +41,7 @@ function saveRecords(recordsToSave) {
 }
 
 // Endpoint for the biometric device to push live attendance data
+// Note: This endpoint will no longer work unless you can change the device port to 8080.
 app.post('/iclock/cdata', async (req, res) => {
     console.log('=================================================');
     console.log(`[Data Received] Live attendance data POSTed at ${new Date().toISOString()}`);
@@ -68,7 +70,6 @@ app.post('/iclock/cdata', async (req, res) => {
 
 // Endpoint to upload data from the local Excel file
 app.get('/upload-from-excel', async (req, res) => {
-    // --- THIS IS THE UPDATED LINE ---
     const filePath = './Attendance Logs.xlsx';
     console.log(`[Excel Upload] Received request to upload data from ${filePath}`);
 
@@ -141,5 +142,7 @@ app.get('/get-attendance-data', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Local Uploader server is running on port ${PORT}`);
     console.log('Waiting for data from the biometric device...');
+    // --- UPDATED: The URL now correctly shows the new port ---
     console.log(`To upload from Excel, visit http://localhost:${PORT}/upload-from-excel in your browser.`);
 });
+
