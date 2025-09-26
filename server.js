@@ -2,7 +2,7 @@
 // This version saves all data locally and can import Excel files with many columns.
 
 const express = require('express');
-const cors = require('cors'); // NEW: Added for local frontend access
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const xlsx = require('xlsx');
@@ -12,7 +12,7 @@ const PORT = 80;
 
 const DB_FILE = './attendance_logs.json';
 
-app.use(cors()); // NEW: Enable Cross-Origin Resource Sharing
+app.use(cors());
 app.use(bodyParser.text({ type: '*/*' }));
 
 // Helper function to read/write from the local JSON file
@@ -27,7 +27,8 @@ function saveRecords(recordsToSave) {
                 allRecords = [];
             }
         }
-        const updatedRecords = [...allRecords, ...recordsToSave];
+        // Prepend new records so the newest data is at the top of the JSON file
+        const updatedRecords = [...recordsToSave, ...allRecords];
         fs.writeFile(DB_FILE, JSON.stringify(updatedRecords, null, 2), (writeErr) => {
             if (writeErr) {
                 console.error('Error saving data to local file:', writeErr);
@@ -51,7 +52,7 @@ app.post('/iclock/cdata', async (req, res) => {
         const parts = line.split('\t');
         if (parts.length < 2) return null;
         return {
-            UserID: parts[0].trim(), // Using UserID to be consistent with Excel header
+            UserID: parts[0].trim(),
             Timestamp: new Date(parts[1].trim()),
             Source: 'BiometricDevice',
             ReceivedAt: new Date()
@@ -67,7 +68,8 @@ app.post('/iclock/cdata', async (req, res) => {
 
 // Endpoint to upload data from the local Excel file
 app.get('/upload-from-excel', async (req, res) => {
-    const filePath = './attendance.xlsx';
+    // --- THIS IS THE UPDATED LINE ---
+    const filePath = './Attendance Logs.xlsx';
     console.log(`[Excel Upload] Received request to upload data from ${filePath}`);
 
     try {
@@ -80,30 +82,23 @@ app.get('/upload-from-excel', async (req, res) => {
         const workbook = xlsx.readFile(filePath);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        // { cellDates: true } is crucial for parsing dates correctly from Excel
-        // { defval: '' } ensures empty cells are included as empty strings
         const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
 
         if (data.length === 0) {
             return res.status(400).send('Excel sheet is empty.');
         }
 
-        // Process all 28 columns (or however many are in the sheet)
         const recordsToSave = data.map(row => {
-            // Create a new object for each row
             const record = {
                 Source: 'ExcelUpload',
                 ReceivedAt: new Date()
             };
             
-            // Dynamically add all columns from the Excel row to our record
             for (const key in row) {
-                // Sanitize the key to remove spaces or special characters if needed
                 const cleanKey = key.trim();
                 record[cleanKey] = row[key];
             }
 
-            // Ensure the timestamp is a valid Date object if it exists
             if (record.Timestamp && !(record.Timestamp instanceof Date)) {
                 record.Timestamp = new Date(record.Timestamp);
             }
@@ -125,11 +120,11 @@ app.get('/upload-from-excel', async (req, res) => {
     }
 });
 
-// NEW: Endpoint for the frontend to fetch the locally stored data
+// Endpoint for the frontend to fetch the locally stored data
 app.get('/get-attendance-data', (req, res) => {
     fs.readFile(DB_FILE, 'utf8', (err, data) => {
         if (err) {
-            if (err.code === 'ENOENT') return res.json([]); // If file doesn't exist, return empty array
+            if (err.code === 'ENOENT') return res.json([]);
             return res.status(500).send('Error reading data file.');
         }
         try {
@@ -148,4 +143,3 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('Waiting for data from the biometric device...');
     console.log(`To upload from Excel, visit http://localhost:${PORT}/upload-from-excel in your browser.`);
 });
-
