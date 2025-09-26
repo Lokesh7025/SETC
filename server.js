@@ -68,8 +68,8 @@ app.post('/iclock/cdata', async (req, res) => {
 
 // Endpoint to upload data from the local CSV file
 app.get('/upload-from-excel', async (req, res) => {
-    // --- UPDATED: Now looks for a .csv file ---
-    const filePath = './Attendance_Logs.csv';
+    // --- UPDATED: Now looks for "Attendance Logs.csv" with a space ---
+    const filePath = './Attendance Logs.csv';
     console.log(`[CSV Upload] Received request to upload data from ${filePath}`);
 
     try {
