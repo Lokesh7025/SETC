@@ -22,10 +22,14 @@ async function downloadAttendanceReport() {
         fs.mkdirSync(DOWNLOAD_PATH, { recursive: true });
     }
 
-    // Standard browser launch without any special arguments.
+    // --- UPDATED: Added 'args' to disable the browser's password manager ---
+    // This is the key change to prevent the data breach pop-up.
     const browser = await puppeteer.launch({ 
         headless: false, 
-        defaultViewport: null
+        defaultViewport: null,
+        args: [
+            '--disable-features=PasswordManager'
+        ]
     });
     
     const page = await browser.newPage();
