@@ -9,12 +9,11 @@ const fs = require('fs');
 const ESSL_LOGIN_URL = 'http://localhost/iclock/Main.aspx';
 const USERNAME = 'essl';
 const PASSWORD = 'essl';
-
-// The path where your server.js and attendance.xlsx should be.
 const DOWNLOAD_PATH = 'C:\\ESSL_PULL';
+const CHROME_PROFILE_PATH = 'C:\\ESSL_PULL\\ChromeProfile'; // Path to our persistent profile
 
 async function downloadAttendanceReport() {
-    console.log('Launching browser...');
+    console.log('Launching browser with a persistent profile...');
 
     // Check if the download directory exists, create it if not.
     if (!fs.existsSync(DOWNLOAD_PATH)) {
@@ -22,12 +21,14 @@ async function downloadAttendanceReport() {
         fs.mkdirSync(DOWNLOAD_PATH, { recursive: true });
     }
 
-    // --- UPDATED: Added 'args' to disable the browser's password manager ---
-    // This is the key change to prevent the data breach pop-up.
-    const browser = await puppeteer.launch({ 
-        headless: false, 
+    // --- UPDATED: Using a persistent userDataDir to save settings ---
+    // This will use the profile you configured manually.
+    const browser = await puppeteer.launch({
+        headless: false,
         defaultViewport: null,
+        userDataDir: CHROME_PROFILE_PATH, // This is the key change
         args: [
+            // We keep this argument as a fallback, but userDataDir is more reliable
             '--disable-features=PasswordManager'
         ]
     });
@@ -45,35 +46,34 @@ async function downloadAttendanceReport() {
         console.log(`Navigating to ${ESSL_LOGIN_URL}...`);
         await page.goto(ESSL_LOGIN_URL, { waitUntil: 'networkidle2' });
 
-        console.log('Attempting to find and fill login form...');
-        
-        let loginFrame = page;
-        const iframeElementHandle = await page.$('iframe'); 
-        if (iframeElementHandle) {
-            console.log('An iframe was found on the login page. Attempting to access it.');
-            const frame = await iframeElementHandle.contentFrame();
-            if (frame) {
-                const usernameFieldInFrame = await frame.$('#StaffloginDialog_txt_LoginName');
-                if (usernameFieldInFrame) {
-                    console.log('Login form found inside the iframe. Proceeding with login...');
+        // Since we are using a persistent profile, the site might already be logged in.
+        // We'll check if the main menu exists. If not, we'll proceed with the login.
+        const isLoggedIn = await page.$('#EasymenuMain');
+
+        if (isLoggedIn) {
+            console.log('Already logged in. Proceeding to navigation...');
+        } else {
+            console.log('Not logged in. Attempting to find and fill login form...');
+            
+            let loginFrame = page;
+            const iframeElementHandle = await page.$('iframe'); 
+            if (iframeElementHandle) {
+                const frame = await iframeElementHandle.contentFrame();
+                if (frame && await frame.$('#StaffloginDialog_txt_LoginName')) {
                     loginFrame = frame;
-                } else {
-                    console.log('Iframe found, but login form was not inside it. Will try the main page.');
                 }
             }
-        } else {
-            console.log('No iframe found on the login page. Assuming form is on the main page.');
+            
+            console.log('Logging in...');
+            await loginFrame.type('#StaffloginDialog_txt_LoginName', USERNAME);
+            await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
+            await loginFrame.click('#StaffloginDialog_Btn_Ok');
+
+            await page.waitForSelector('#EasymenuMain', { visible: true });
         }
-
-        console.log('Logging in...');
-        await loginFrame.type('#StaffloginDialog_txt_LoginName', USERNAME);
-        await loginFrame.type('#StaffloginDialog_Txt_Password', PASSWORD);
-        await loginFrame.click('#StaffloginDialog_Btn_Ok');
-
-        await page.waitForSelector('#EasymenuMain', { visible: true });
-        console.log('Login successful!');
         
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for page to settle
+        console.log('Login successful!');
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // --- NAVIGATE TO THE REPORT PAGE ---
         console.log('Hovering over the "Reports" menu...');
@@ -109,7 +109,6 @@ async function downloadAttendanceReport() {
         console.log('Clicking the export button to download the file...');
         await frame.click(exportButtonSelector);
 
-        // Give the file some time to download.
         console.log('Waiting for download to complete... (waiting 15 seconds)');
         await new Promise(resolve => setTimeout(resolve, 15000));
         
@@ -121,12 +120,12 @@ async function downloadAttendanceReport() {
             const oldPath = path.join(DOWNLOAD_PATH, downloadedFile);
             const newPath = path.join(DOWNLOAD_PATH, 'attendance.xlsx');
             if (fs.existsSync(newPath)) {
-                fs.unlinkSync(newPath); // Delete old attendance.xlsx if it exists
+                fs.unlinkSync(newPath);
             }
             fs.renameSync(oldPath, newPath);
             console.log(`Successfully downloaded and renamed to 'attendance.xlsx'`);
         } else {
-            console.error('Could not find the downloaded file. The download might have failed or the file was not an Excel file.');
+            console.error('Could not find the downloaded file.');
         }
 
     } catch (error) {
