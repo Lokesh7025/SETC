@@ -68,8 +68,8 @@ app.post('/iclock/cdata', async (req, res) => {
 
 // Endpoint to upload data from the local XLSX file
 app.get('/upload-from-excel', async (req, res) => {
-    // --- THIS IS THE REVERTED LINE ---
-    const filePath = './Attendance Logs.xlsx';
+    // --- UPDATED: Using an underscore for best practice ---
+    const filePath = './Attendance_Logs.xlsx';
     console.log(`[Excel Upload] Received request to upload data from ${filePath}`);
 
     try {
