@@ -1,11 +1,11 @@
-// server.js (Local Storage with XLSX Import)
-// This version saves all data locally and can import XLSX files.
+// server.js (Local Storage with CSV Import)
+// This version saves all data locally and can import CSV files.
 
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const xlsx = require('xlsx');
+const xlsx = require('xlsx'); // This library can also read CSV files
 
 const app = express();
 const PORT = 8080;
@@ -66,15 +66,15 @@ app.post('/iclock/cdata', async (req, res) => {
     res.status(200).send('OK');
 });
 
-// Endpoint to upload data from the local XLSX file
+// Endpoint to upload data from the local CSV file
 app.get('/upload-from-excel', async (req, res) => {
-    // --- UPDATED: Using an underscore for best practice ---
+    // --- UPDATED: Now looks for a .csv file ---
     const filePath = './Attendance_Logs.csv';
-    console.log(`[Excel Upload] Received request to upload data from ${filePath}`);
+    console.log(`[CSV Upload] Received request to upload data from ${filePath}`);
 
     try {
         if (!fs.existsSync(filePath)) {
-            const msg = `Error: Excel file not found. Ensure '${filePath}' is in the server's folder.`;
+            const msg = `Error: CSV file not found. Ensure '${filePath}' is in the server's folder.`;
             console.error(msg);
             return res.status(404).send(msg);
         }
@@ -85,7 +85,7 @@ app.get('/upload-from-excel', async (req, res) => {
         const data = xlsx.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
 
         if (data.length === 0) {
-            return res.status(400).send('Excel file is empty.');
+            return res.status(400).send('CSV file is empty.');
         }
 
         const recordsToSave = data.map(row => {
@@ -108,14 +108,14 @@ app.get('/upload-from-excel', async (req, res) => {
 
         if (recordsToSave.length > 0) {
             saveRecords(recordsToSave);
-            const msg = `Successfully processed ${recordsToSave.length} records from Excel and saved locally.`;
-            console.log(`[Excel Upload] ${msg}`);
+            const msg = `Successfully processed ${recordsToSave.length} records from CSV and saved locally.`;
+            console.log(`[CSV Upload] ${msg}`);
             res.status(200).send(msg);
         } else {
-            res.status(400).send('No valid records found in the Excel file.');
+            res.status(400).send('No valid records found in the CSV file.');
         }
     } catch (error) {
-        console.error('[Excel Upload] An error occurred during the upload process:', error);
+        console.error('[CSV Upload] An error occurred during the upload process:', error);
         res.status(500).send('An internal server error occurred.');
     }
 });
